@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkillBot — Career Gap Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    :root {
+      --bg:        #080b12;
+      --surface:   #0e1420;
+      --card:      #131926;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.13);
+      --text:      #dde3f0;
+      --muted:     #5a6480;
+      --subtle:    #8892aa;
+      --accent:    #4f8ef7;
+      --accent2:   #7b5cf5;
+      --green:     #2dd4a0;
+      --amber:     #f5a623;
+      --red:       #f06070;
+      --r:         12px;
+      --rL:        18px;
+      --max:       720px;
+    }
+ 
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+ 
+    /* ── Header ─────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 20px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .logo-wrap {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .logo-text h1 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; letter-spacing: -.01em; }
+    .logo-text p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .badge {
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .badge.groq { background: rgba(79,142,247,.15); color: var(--accent); border: 1px solid rgba(79,142,247,.25); }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .icon-btn {
+      width: 34px; height: 34px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      color: var(--muted);
+      transition: all .15s;
+    }
+    .icon-btn:hover { border-color: var(--border2); color: var(--text); }
+ 
+    /* ── Layout ─────────────────────────────────── */
+    .app { display: flex; flex: 1; overflow: hidden; }
+ 
+    /* ── Sidebar ─────────────────────────────────── */
+    .sidebar {
+      width: 256px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+ 
+    .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+    .section-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+ 
+    /* Resume zone */
+    .resume-drop {
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--r);
+      padding: 18px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .resume-drop:hover { border-color: var(--accent); background: rgba(79,142,247,.06); }
+    .resume-drop.active { border-color: var(--green); background: rgba(45,212,160,.06); }
+    .resume-drop .drop-icon { font-size: 22px; margin-bottom: 6px; }
+    .resume-drop .drop-title { font-size: 12px; font-weight: 500; color: var(--text); }
+    .resume-drop .drop-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .resume-drop.active .drop-title { color: var(--green); }
+    #resume-file { display: none; }
+ 
+    /* Progress list */
+    .progress-list { display: flex; flex-direction: column; gap: 6px; }
+    .prog-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .prog-item:hover { border-color: var(--border2); }
+    .prog-item.done { opacity: .55; }
+    .prog-item input[type=checkbox] {
+      accent-color: var(--accent);
+      width: 13px; height: 13px;
+      margin-top: 2px; flex-shrink: 0;
+    }
+    .prog-item .prog-label {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .prog-item.done .prog-label { text-decoration: line-through; color: var(--muted); }
+ 
+    .prog-stat {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+    .prog-stat span { color: var(--accent); font-weight: 500; }
+ 
+    .empty-hint { font-size: 11px; color: var(--muted); font-style: italic; text-align: center; padding: 6px 0; line-height: 1.5; }
+ 
+    /* ── Chat area ─────────────────────────────────── */
+    .chat-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+ 
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      scroll-behavior: smooth;
+    }
+ 
+    .msg { display: flex; gap: 10px; max-width: var(--max); }
+    .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+ 
+    .av {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; margin-top: 2px;
+    }
+    .msg.bot  .av { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+    .msg.user .av { background: var(--card); border: 1px solid var(--border2); }
+ 
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--rL);
+      font-size: 13.5px;
+      line-height: 1.7;
+      max-width: calc(var(--max) - 50px);
+    }
+    .msg.bot .bubble {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+      color: var(--text);
+    }
+    .msg.user .bubble {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      border-top-right-radius: 4px;
+    }
+ 
+    /* message formatting */
+    .bubble b  { font-weight: 600; }
+    .bubble em { color: var(--subtle); }
+    .bubble a  { color: var(--accent); text-underline-offset: 3px; }
+    .bubble .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      margin: 2px 2px;
+    }
+    .tag.have { background: rgba(45,212,160,.12); color: var(--green); }
+    .tag.need { background: rgba(240,96,112,.12); color: var(--red); }
+    .tag.step { background: rgba(245,166,35,.12); color: var(--amber); }
+ 
+    /* typing dots */
+    .typing-bubble { padding: 14px 16px; }
+    .dots { display: flex; gap: 5px; align-items: center; }
+    .dots span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--muted);
+      animation: pulse 1s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: .2s; }
+    .dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes pulse { 0%,100%{opacity:.3;transform:scale(1)} 50%{opacity:1;transform:scale(1.2)} }
+ 
+    /* suggestion chips after bot reply */
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+      max-width: calc(var(--max) - 50px);
+      margin-left: 42px;
+    }
+    .sug-chip {
+      padding: 6px 13px;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--subtle);
+      cursor: pointer;
+      background: var(--card);
+      transition: all .15s;
+      animation: fadeUp .25s ease both;
+    }
+    .sug-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(79,142,247,.08);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .sug-chip:nth-child(2) { animation-delay: .05s; }
+    .sug-chip:nth-child(3) { animation-delay: .1s; }
+    .sug-chip:nth-child(4) { animation-delay: .15s; }
+    .input-area {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 14px 24px 18px;
+      flex-shrink: 0;
+    }
+ 
+    .chips {
+      display: flex; gap: 7px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .chip {
+      padding: 5px 13px;
+      border: 1px solid var(--border2);
+      border-radius: 20px;
+      font-size: 11.5px;
+      color: var(--subtle);
+      cursor: pointer;
+      transition: all .15s;
+      background: var(--card);
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent); background: rgba(79,142,247,.08); }
+ 
+    .input-row {
+      display: flex; gap: 10px; align-items: flex-end;
+      max-width: var(--max);
+    }
+    #user-input {
+      flex: 1;
+      padding: 11px 15px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      resize: none;
+      min-height: 44px;
+      max-height: 150px;
+      line-height: 1.55;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #user-input:focus { border-color: var(--accent); }
+    #user-input::placeholder { color: var(--muted); }
+ 
+    #send-btn {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none; border-radius: var(--r);
+      cursor: pointer; color: #fff;
+      font-size: 17px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity .15s, transform .1s;
+    }
+    #send-btn:hover   { opacity: .9; }
+    #send-btn:active  { transform: scale(.94); }
+    #send-btn:disabled{ opacity: .35; cursor: not-allowed; }
+ 
+    /* ── Resume prompt modal ──────────────────────── */
+    .resume-modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--rL);
+      padding: 24px;
+      width: 420px;
+      max-width: 95vw;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .resume-modal .modal-header {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .resume-modal .file-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      font-size: 12px; color: var(--subtle);
+    }
+    .resume-modal .file-badge span { color: var(--text); font-weight: 500; }
+    .resume-modal h2 { font-family: 'Syne', sans-serif; font-size: 16px; }
+    .resume-modal .divider {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 11px; color: var(--muted);
+    }
+    .resume-modal .divider::before,
+    .resume-modal .divider::after {
+      content: ''; flex: 1;
+      height: 1px; background: var(--border);
+    }
+    .quick-prompts { display: flex; flex-direction: column; gap: 7px; }
+    .quick-prompt-btn {
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      text-align: left;
+      transition: all .15s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .quick-prompt-btn:hover { border-color: var(--accent); background: rgba(79,142,247,.08); color: var(--accent); }
+    .quick-prompt-btn .qp-icon { font-size: 16px; flex-shrink: 0; }
+    .custom-prompt-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .custom-prompt-wrap label { font-size: 12px; color: var(--muted); }
+    .custom-prompt-input {
+      width: 100%;
+      padding: 10px 13px;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      resize: none;
+      min-height: 70px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .custom-prompt-input:focus { border-color: var(--accent); }
+    .custom-prompt-input::placeholder { color: var(--muted); }
+    .resume-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-send-custom {
+      padding: 9px 18px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-send-custom:disabled { opacity: .4; cursor: not-allowed; }
+ 
+    /* ── New chat confirm ─────────────────────────────────── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); z-index: 200;
+      align-items: center; justify-content: center;
+    }
+    .overlay.show { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--rL);
+      padding: 28px 24px;
+      width: 360px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal h2 { font-family: 'Syne', sans-serif; font-size: 17px; }
+    .modal p  { font-size: 13px; color: var(--subtle); line-height: 1.6; }
+    .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+    .btn-cancel {
+      padding: 8px 16px; border-radius: 8px;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); cursor: pointer; font-size: 13px;
+    }
+    .btn-confirm {
+      padding: 8px 18px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff; border: none; cursor: pointer; font-size: 13px;
+    }
+ 
+    /* Recent chats */
+    .chat-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+      border: 1px solid transparent;
+    }
+    .chat-item:hover { background: var(--card); border-color: var(--border); }
+    .chat-item.active { background: var(--card); border-color: var(--accent); }
+    .chat-item .chat-icon { font-size: 14px; flex-shrink: 0; }
+    .chat-item .chat-info { flex: 1; min-width: 0; }
+    .chat-item .chat-title {
+      font-size: 12px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      color: var(--text);
+    }
+    .chat-item.active .chat-title { color: var(--accent); }
+    .chat-item .chat-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .chat-item .del-btn {
+      opacity: 0; font-size: 13px; color: var(--muted);
+      background: none; border: none; cursor: pointer;
+      padding: 2px 4px; border-radius: 4px; flex-shrink: 0;
+      transition: opacity .15s, color .15s;
+    }
+    .chat-item:hover .del-btn { opacity: 1; }
+    .chat-item .del-btn:hover { color: var(--red); }
+    .chats-list { display: flex; flex-direction: column; gap: 2px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  </style>
+</head>
+<body>
+ 
+<!-- Header -->
+<header>
+  <div class="logo-wrap">🎯</div>
+  <div class="logo-text">
+    <h1>SkillBot</h1>
+    <p>Career skill gap analyzer</p>
+  </div>
+  <div class="badge groq">Groq · Llama 3.3</div>
+  <div class="header-right">
+    <div class="icon-btn" title="New chat" onclick="showModal()">✏️</div>
+  </div>
+</header>
+ 
+<div class="app">
+ 
+  <!-- Sidebar -->
+  <aside class="sidebar">
+ 
+    <!-- Recent chats -->
+    <div class="sidebar-section">
+      <div class="section-label">Recent chats</div>
+      <div class="chats-list" id="chats-list">
+        <div class="empty-hint" id="chats-empty">No chats yet</div>
+      </div>
+    </div>
+ 
+    <!-- Resume upload -->
+    <div class="sidebar-section">
+      <div class="section-label">Resume</div>
+      <div class="resume-drop" id="resume-drop" onclick="document.getElementById('resume-file').click()">
+        <div class="drop-icon" id="drop-icon">📄</div>
+        <div class="drop-title" id="drop-title">Upload your resume</div>
+        <div class="drop-sub" id="drop-sub">PDF, Word (.docx), or TXT — max 5MB</div>
+        <input type="file" id="resume-file" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onchange="uploadResume(this)"/>
+      </div>
+    </div>
+ 
+    <!-- Progress tracker -->
+    <div class="sidebar-section" style="flex:1">
+      <div class="section-label">Learning progress</div>
+      <div class="progress-list" id="progress-list">
+        <div class="empty-hint" id="prog-empty">Your roadmap skills will appear here after analysis</div>
+      </div>
+      <div class="prog-stat" id="prog-stat" style="display:none">
+        <span id="prog-count">0</span> of <span id="prog-total">0</span> skills completed
+      </div>
+    </div>
+ 
+  </aside>
+ 
+  <!-- Chat -->
+  <div class="chat-wrap">
+    <div id="messages"></div>
+ 
+    <div class="input-area">
+      <div class="chips" id="chips">
+        <div class="chip" onclick="useChip(this)">I want to become a Data Scientist</div>
+        <div class="chip" onclick="useChip(this)">Frontend Developer roadmap</div>
+        <div class="chip" onclick="useChip(this)">Skills for DevOps Engineer</div>
+        <div class="chip" onclick="useChip(this)">Full Stack Developer path</div>
+      </div>
+      <div class="input-row">
+        <textarea id="user-input" rows="1"
+          placeholder="Type your target role or ask about skills..."
+          onkeydown="handleKey(event)"
+          oninput="autoGrow(this)"></textarea>
+        <button id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- Resume prompt modal -->
+<div class="overlay" id="resume-overlay">
+  <div class="resume-modal">
+    <div class="modal-header">
+      <div style="font-size:22px">📄</div>
+      <div>
+        <h2>Resume ready to send</h2>
+        <div class="file-badge" id="resume-file-badge" style="margin-top:6px">
+          📎 <span id="resume-filename">file.pdf</span>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="quick-prompts">
+      <div class="quick-prompt-btn" onclick="sendResumeWithPrompt('Analyze my resume and tell me what skills I have and what skills I am missing for my target role.')">
+        <span class="qp-icon">🔍</span>
+        <div>
+          <div style="font-weight:500;font-size:13px">Analyze my skill gaps</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Find what I'm missing for my target role</div>
+        </div>
+      </div>
+      <div class="quick-prompt-btn" onclick="sendResumeWithPrompt('Based on my resume, create a personalized step-by-step learning roadmap for me to reach my career goal.')">
+        <span class="qp-icon">🗺️</span>
+        <div>
+          <div style="font-weight:500;font-size:13px">Build my learning roadmap</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Get a step-by-step plan based on my background</div>
+        </div>
+      </div>
+      <div class="quick-prompt-btn" onclick="sendResumeWithPrompt('Review my resume and tell me what job roles I am best suited for right now, and what roles I could target after upskilling.')">
+        <span class="qp-icon">💼</span>
+        <div>
+          <div style="font-weight:500;font-size:13px">What roles suit me now?</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">See what jobs match my current profile</div>
+        </div>
+      </div>
+      <div class="quick-prompt-btn" onclick="sendResumeWithPrompt('Just use my resume as context. I will ask you questions.')">
+        <span class="qp-icon">💬</span>
+        <div>
+          <div style="font-weight:500;font-size:13px">Just give AI access — I'll ask</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">AI reads your resume, you ask what you want</div>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="divider">or write your own prompt</div>
+ 
+    <div class="custom-prompt-wrap">
+      <textarea class="custom-prompt-input" id="custom-resume-prompt"
+        placeholder="e.g. I want to become a Data Scientist. What skills am I missing based on my resume?"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCustomResumePrompt();}"></textarea>
+      <div class="resume-modal-actions">
+        <button class="btn-cancel" onclick="closeResumeModal()">Cancel</button>
+        <button class="btn-send-custom" onclick="sendCustomResumePrompt()">Send ➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- New chat modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Start a new conversation?</h2>
+    <p>This will clear your current chat. Your progress will be saved in the database.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="hideModal()">Cancel</button>
+      <button class="btn-confirm" onclick="newChat()">Start fresh</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
+  // ── State ──────────────────────────────────────
+  let sessionId = localStorage.getItem('sb_session') || null;
+  let progressItems = [];
+ 
+  // ── Recent chats ───────────────────────────────
+  async function loadChats() {
+    const r = await fetch('/api/sessions');
+    const d = await r.json();
+    renderChats(d.sessions || []);
+  }
+ 
+  function renderChats(sessions) {
+    const list  = document.getElementById('chats-list');
+    const empty = document.getElementById('chats-empty');
+    list.querySelectorAll('.chat-item').forEach(e => e.remove());
+ 
+    if (!sessions.length) {
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+ 
+    sessions.forEach(s => {
+      const el = document.createElement('div');
+      el.className = `chat-item${s.id === sessionId ? ' active' : ''}`;
+      el.dataset.id = s.id;
+ 
+      const timeAgo = formatTime(s.updated_at);
+      el.innerHTML = `
+        <span class="chat-icon">💬</span>
+        <div class="chat-info">
+          <div class="chat-title">${s.title || 'New Chat'}</div>
+          <div class="chat-time">${timeAgo}</div>
+        </div>
+        <button class="del-btn" title="Delete" onclick="deleteChat(event,'${s.id}')">🗑</button>`;
+ 
+      el.addEventListener('click', () => switchChat(s.id));
+      list.appendChild(el);
+    });
+  }
+ 
+  async function switchChat(id) {
+    if (id === sessionId) return;
+    sessionId = id;
+    localStorage.setItem('sb_session', sessionId);
+ 
+    // Clear messages
+    document.getElementById('messages').innerHTML = '';
+    progressItems = [];
+    renderProgress();
+ 
+    // Reset resume zone
+    document.getElementById('resume-drop').classList.remove('active');
+    document.getElementById('drop-icon').textContent  = '📄';
+    document.getElementById('drop-title').textContent = 'Upload your resume';
+    document.getElementById('drop-sub').textContent   = 'PDF, Word (.docx), or TXT — max 5MB';
+ 
+    // Load this session's history
+    const r = await fetch(`/api/history/${sessionId}`);
+    const d = await r.json();
+    progressItems = d.progress || [];
+    renderProgress();
+    d.messages.forEach(m => addBubble(m.role === 'user' ? 'user' : 'bot', m.content));
+    if (d.hasResume) setResumeUploaded('Resume on file');
+ 
+    // Update active state in sidebar
+    loadChats();
+  }
+ 
+  async function deleteChat(e, id) {
+    e.stopPropagation();
+    if (!confirm('Delete this chat?')) return;
+ 
+    await fetch(`/api/session/${id}`, { method: 'DELETE' });
+ 
+    // If deleting current chat, start a new one
+    if (id === sessionId) {
+      await newChat();
+    } else {
+      loadChats();
+    }
+  }
+ 
+  function formatTime(dateStr) {
+    const date = new Date(dateStr);
+    const now  = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    if (diff < 60)   return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+ 
+  // ── Boot ───────────────────────────────────────
+  (async () => {
+    if (!sessionId) {
+      const r = await fetch('/api/session', { method: 'POST' });
+      const d = await r.json();
+      sessionId = d.sessionId;
+      localStorage.setItem('sb_session', sessionId);
+    }
+ 
+    const r = await fetch(`/api/history/${sessionId}`);
+    const d = await r.json();
+ 
+    progressItems = d.progress || [];
+    renderProgress();
+    loadChats();
+ 
+    if (d.messages.length === 0) {
+      // Fresh session — trigger bot greeting
+      await callBot('Hello! (start)');
+    } else {
+      d.messages.forEach(m => addBubble(m.role === 'user' ? 'user' : 'bot', m.content));
+      if (d.hasResume) setResumeUploaded('Resume on file');
+    }
+  })();
+ 
+  // ── Send flow ──────────────────────────────────
+  async function sendMessage() {
+    const el  = document.getElementById('user-input');
+    const txt = el.value.trim();
+    if (!txt) return;
+    el.value = ''; el.style.height = 'auto';
+    document.getElementById('chips').style.display = 'none';
+    document.querySelectorAll('.suggestions').forEach(e => e.remove());
+    addBubble('user', txt);
+    await callBot(txt);
+  }
+ 
+  async function callBot(text) {
+    document.getElementById('send-btn').disabled = true;
+    const typing = addTyping();
+    try {
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, sessionId })
+      });
+      const d = await r.json();
+      typing.remove();
+      if (d.error) { addBubble('bot', '⚠️ ' + d.error); }
+      else {
+        addBubble('bot', d.reply);
+        parseProgressFromReply(d.reply);
+        loadChats();
+        if (d.suggestions?.length) showSuggestions(d.suggestions);
+      }
+    } catch(e) {
+      typing.remove();
+      addBubble('bot', '⚠️ Cannot reach server. Is it running?');
+    }
+    document.getElementById('send-btn').disabled = false;
+  }
+ 
+  // ── Render bubbles ─────────────────────────────
+  function addBubble(role, text) {
+    const wrap = document.getElementById('messages');
+    const div  = document.createElement('div');
+    div.className = `msg ${role}`;
+ 
+    const av = document.createElement('div');
+    av.className = 'av';
+    av.textContent = role === 'bot' ? '🎯' : '👤';
+ 
+    const bub = document.createElement('div');
+    bub.className = 'bubble';
+    bub.innerHTML = fmt(text);
+ 
+    div.appendChild(av);
+    div.appendChild(bub);
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+    return div;
+  }
+ 
+  function addTyping() {
+    const wrap = document.getElementById('messages');
+    const div  = document.createElement('div');
+    div.className = 'msg bot';
+    div.innerHTML = `<div class="av">🎯</div>
+      <div class="bubble typing-bubble"><div class="dots"><span></span><span></span><span></span></div></div>`;
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+    return div;
+  }
+ 
+  function fmt(t) {
+    return t
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/`(.*?)`/g,'<code style="background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+      .replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank">$1</a>')
+      .replace(/\n/g,'<br/>');
+  }
+ 
+  // ── Suggestion chips after bot reply ───────────
+  function showSuggestions(suggestions) {
+    // Remove any existing suggestion row
+    document.querySelectorAll('.suggestions').forEach(e => e.remove());
+ 
+    const wrap = document.getElementById('messages');
+    const row  = document.createElement('div');
+    row.className = 'suggestions';
+ 
+    suggestions.forEach((text, i) => {
+      const chip = document.createElement('button');
+      chip.className = 'sug-chip';
+      chip.style.animationDelay = (i * 0.05) + 's';
+      chip.textContent = text;
+      chip.onclick = () => {
+        // Remove chips once one is clicked
+        row.remove();
+        document.getElementById('user-input').value = text;
+        sendMessage();
+      };
+      row.appendChild(chip);
+    });
+ 
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+ 
+  // ── Progress parsing ────────────────────────────
+  async function parseProgressFromReply(text) {
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const m = line.match(/^\d+\.\s+([^—\-\n]{4,50})/);
+      if (m) {
+        const skill = m[1].trim().replace(/\*+/g,'').replace(/:$/, '');
+        if (!progressItems.find(p => p.skill === skill)) {
+          const r = await fetch('/api/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, skill })
+          });
+          const d = await r.json();
+          if (d.progress) {
+            progressItems = d.progress;
+            renderProgress();
+          }
+        }
+      }
+    }
+  }
+ 
+  function renderProgress() {
+    const list  = document.getElementById('progress-list');
+    const empty = document.getElementById('prog-empty');
+    const stat  = document.getElementById('prog-stat');
+ 
+    if (!progressItems.length) {
+      empty.style.display = 'block';
+      stat.style.display  = 'none';
+      list.querySelectorAll('.prog-item').forEach(e => e.remove());
+      return;
+    }
+    empty.style.display = 'none';
+    stat.style.display  = 'block';
+ 
+    list.querySelectorAll('.prog-item').forEach(e => e.remove());
+    let done = 0;
+    progressItems.forEach(item => {
+      if (item.completed) done++;
+      const el = document.createElement('label');
+      el.className = `prog-item${item.completed ? ' done' : ''}`;
+      el.innerHTML = `<input type="checkbox" ${item.completed ? 'checked' : ''}
+        onchange="toggleProg(${item.id}, this.checked)"/>
+        <span class="prog-label">${item.skill}</span>`;
+      list.appendChild(el);
+    });
+    document.getElementById('prog-count').textContent = done;
+    document.getElementById('prog-total').textContent = progressItems.length;
+  }
+ 
+  async function toggleProg(id, completed) {
+    await fetch(`/api/progress/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed })
+    });
+    progressItems = progressItems.map(p => p.id === id ? { ...p, completed } : p);
+    renderProgress();
+  }
+ 
+  // ── Resume upload ──────────────────────────────
+  let pendingResumeFile = null;
+ 
+  async function uploadResume(input) {
+    if (!input.files[0]) return;
+    const file = input.files[0];
+ 
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File too large. Please upload a file under 5MB.');
+      return;
+    }
+ 
+    // Show uploading state
+    document.getElementById('drop-icon').textContent  = '⏳';
+    document.getElementById('drop-title').textContent = 'Uploading...';
+    document.getElementById('drop-sub').textContent   = file.name;
+ 
+    const form = new FormData();
+    form.append('resume', file);
+    form.append('sessionId', sessionId);
+ 
+    try {
+      const r = await fetch('/api/upload-resume', { method: 'POST', body: form });
+      const d = await r.json();
+ 
+      if (d.success) {
+        setResumeUploaded(file.name);
+        pendingResumeFile = file.name;
+        // Show prompt modal instead of auto-sending
+        openResumeModal(file.name);
+      } else {
+        document.getElementById('drop-icon').textContent  = '❌';
+        document.getElementById('drop-title').textContent = 'Upload failed';
+        document.getElementById('drop-sub').textContent   = d.error;
+      }
+    } catch {
+      document.getElementById('drop-icon').textContent  = '❌';
+      document.getElementById('drop-title').textContent = 'Upload failed';
+      document.getElementById('drop-sub').textContent   = 'Make sure the server is running';
+    }
+  }
+ 
+  function openResumeModal(fileName) {
+    document.getElementById('resume-filename').textContent = fileName;
+    document.getElementById('custom-resume-prompt').value  = '';
+    document.getElementById('resume-overlay').classList.add('show');
+    setTimeout(() => document.getElementById('custom-resume-prompt').focus(), 100);
+  }
+ 
+  function closeResumeModal() {
+    document.getElementById('resume-overlay').classList.remove('show');
+  }
+ 
+  async function sendResumeWithPrompt(prompt) {
+    closeResumeModal();
+    addBubble('user', `📄 Uploaded resume: ${pendingResumeFile || 'resume'}`);
+    await callBot(prompt);
+  }
+ 
+  async function sendCustomResumePrompt() {
+    const prompt = document.getElementById('custom-resume-prompt').value.trim();
+    if (!prompt) {
+      document.getElementById('custom-resume-prompt').focus();
+      return;
+    }
+    closeResumeModal();
+    addBubble('user', `📄 Uploaded resume: ${pendingResumeFile || 'resume'}`);
+    await callBot(prompt);
+  }
+ 
+  function setResumeUploaded(fileName) {
+    document.getElementById('resume-drop').classList.add('active');
+    document.getElementById('drop-icon').textContent  = '✅';
+    document.getElementById('drop-title').textContent = 'Resume loaded';
+    document.getElementById('drop-sub').textContent   = fileName || 'Bot will use this automatically';
+  }
+ 
+  // ── Helpers ────────────────────────────────────
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+  }
+  function useChip(el) {
+    document.getElementById('user-input').value = el.textContent;
+    sendMessage();
+  }
+  function showModal() { document.getElementById('overlay').classList.add('show'); }
+  function hideModal() { document.getElementById('overlay').classList.remove('show'); }
+  async function newChat() {
+    const r = await fetch('/api/session', { method: 'POST' });
+    const d = await r.json();
+    sessionId = d.sessionId;
+    localStorage.setItem('sb_session', sessionId);
+    location.reload();
+  }
+</script>
+</body>
+</html>

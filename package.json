@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.14.0",
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "grok-sdk": "^0.0.1-security",
+    "groq-sdk": "^1.1.2",
+    "mammoth": "^1.12.0",
+    "multer": "^2.1.1",
+    "pdfjs-dist": "^3.11.174"
+  }
+}
